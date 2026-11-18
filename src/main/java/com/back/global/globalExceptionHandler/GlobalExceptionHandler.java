@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -29,6 +30,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RsData<Void>> handle(HttpMessageNotReadableException ex) {
         return toResponse(new RsData<>("400-1", "요청 본문이 올바르지 않습니다."));
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<RsData<Void>> handle(NoSuchElementException ex) {
+        return toResponse(new RsData<>("404-1", "해당 데이터가 존재하지 않습니다."));
     }
 
     private ResponseEntity<RsData<Void>> toResponse(RsData<Void> rsData) {

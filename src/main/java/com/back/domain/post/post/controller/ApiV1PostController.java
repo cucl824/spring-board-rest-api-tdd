@@ -28,6 +28,12 @@ public class ApiV1PostController {
                 .toList();
     }
 
+    @GetMapping("/{id}")
+    @Transactional(readOnly = true)
+    public PostDto item(@PathVariable long id) {
+        return new PostDto(postService.findById(id));
+    }
+
     record PostWriteReqBody(
             @NotBlank @Size(min = 2, max = 100) String title,
             @NotBlank @Size(min = 2, max = 5000) String content

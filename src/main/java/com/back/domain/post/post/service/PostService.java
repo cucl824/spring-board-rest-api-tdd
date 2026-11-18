@@ -29,6 +29,10 @@ public class PostService {
         return postRepository.findAllByOrderByIdDesc();
     }
 
+    public Post findById(long id) {
+        return postRepository.findById(id).orElseThrow();
+    }
+
     public void flush() {
         postRepository.flush();
     }
