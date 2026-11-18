@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/posts/{postId}/comments")
 @RequiredArgsConstructor
@@ -35,5 +38,17 @@ public class ApiV1PostCommentController {
                 "%d번 댓글이 작성되었습니다.".formatted(postComment.getId()),
                 new PostCommentDto(postComment)
         );
+    }
+
+    @GetMapping
+    @Transactional(readOnly = true)
+    public List<PostCommentDto> list(@PathVariable long postId) {
+        Post post = postService.findById(postId);
+
+        return post.getComments()
+                .stream()
+                .sorted(Comparator.comparingLong(PostComment::getId).reversed())
+                .map(PostCommentDto::new)
+                .toList();
     }
 }

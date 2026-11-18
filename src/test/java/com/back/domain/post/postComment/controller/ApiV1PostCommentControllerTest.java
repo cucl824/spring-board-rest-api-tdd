@@ -138,4 +138,61 @@ class ApiV1PostCommentControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"));
     }
+
+    @Test
+    @DisplayName("댓글 다건 조회, 해당 글의 댓글만 최신순으로 반환")
+    void list() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(get("/api/v1/posts/%d/comments".formatted(post1.getId())))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("list"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[*].postId", everyItem(is((int) post1.getId()))))
+                .andExpect(jsonPath("$[*].id", not(hasItem((int) comment2_1.getId()))))
+                .andExpect(jsonPath("$[*].id", not(hasItem((int) comment2_2.getId()))));
+
+        PostComment[] expected = {comment1_3, comment1_2, comment1_1};
+        for (int i = 0; i < expected.length; i++) {
+            PostComment comment = expected[i];
+            resultActions
+                    .andExpect(jsonPath("$[%d].id".formatted(i)).value(comment.getId()))
+                    .andExpect(jsonPath("$[%d].createDate".formatted(i)).value(startsWith(comment.getCreateDate().toString().substring(0, 19))))
+                    .andExpect(jsonPath("$[%d].modifyDate".formatted(i)).value(startsWith(comment.getModifyDate().toString().substring(0, 19))))
+                    .andExpect(jsonPath("$[%d].postId".formatted(i)).value(post1.getId()))
+                    .andExpect(jsonPath("$[%d].content".formatted(i)).value(comment.getContent()));
+        }
+    }
+
+    @Test
+    @DisplayName("댓글 다건 조회, 댓글이 없는 글이면 빈 배열")
+    void listEmpty() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(get("/api/v1/posts/%d/comments".formatted(post3.getId())))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("list"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("댓글 다건 조회, 없는 글이면 404")
+    void listNotFoundPost() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(get("/api/v1/posts/%d/comments".formatted(Integer.MAX_VALUE)))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("list"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+    }
 }
