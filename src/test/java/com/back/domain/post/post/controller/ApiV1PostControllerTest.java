@@ -158,4 +158,87 @@ class ApiV1PostControllerTest {
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
                 .andExpect(jsonPath("$.msg").value("해당 데이터가 존재하지 않습니다."));
     }
+
+    @Test
+    @DisplayName("글 수정")
+    void modify() throws Exception {
+        Post post = postService.write("제목 1", "내용 1");
+        postService.flush();
+
+        ResultActions resultActions = mvc
+                .perform(
+                        put("/api/v1/posts/%d".formatted(post.getId()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "title": "수정된 제목",
+                                            "content": "수정된 내용"
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostController.class))
+                .andExpect(handler().methodName("modify"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 글이 수정되었습니다.".formatted(post.getId())));
+
+        Post modified = postService.findById(post.getId());
+        assertThat(modified.getTitle()).isEqualTo("수정된 제목");
+        assertThat(modified.getContent()).isEqualTo("수정된 내용");
+    }
+
+    @Test
+    @DisplayName("글 수정, 빈 내용이면 400")
+    void modifyWithoutContent() throws Exception {
+        Post post = postService.write("제목 1", "내용 1");
+        postService.flush();
+
+        ResultActions resultActions = mvc
+                .perform(
+                        put("/api/v1/posts/%d".formatted(post.getId()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "title": "수정된 제목",
+                                            "content": ""
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostController.class))
+                .andExpect(handler().methodName("modify"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-1"))
+                .andExpect(jsonPath("$.msg").value(containsString("content-NotBlank")));
+
+        assertThat(postService.findById(post.getId()).getContent()).isEqualTo("내용 1");
+    }
+
+    @Test
+    @DisplayName("글 수정, 없는 글이면 404")
+    void modifyNotFound() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(
+                        put("/api/v1/posts/%d".formatted(Integer.MAX_VALUE))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "title": "수정된 제목",
+                                            "content": "수정된 내용"
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostController.class))
+                .andExpect(handler().methodName("modify"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+    }
 }
