@@ -51,4 +51,13 @@ public class ApiV1PostCommentController {
                 .map(PostCommentDto::new)
                 .toList();
     }
+
+    @GetMapping("/{id}")
+    @Transactional(readOnly = true)
+    public PostCommentDto item(@PathVariable long postId, @PathVariable long id) {
+        Post post = postService.findById(postId);
+        PostComment postComment = postService.findCommentById(post, id);
+
+        return new PostCommentDto(postComment);
+    }
 }

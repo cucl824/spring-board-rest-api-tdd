@@ -195,4 +195,51 @@ class ApiV1PostCommentControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"));
     }
+
+    @Test
+    @DisplayName("댓글 단건 조회")
+    void item() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(get("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), comment1_2.getId())))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("item"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(comment1_2.getId()))
+                .andExpect(jsonPath("$.createDate").value(startsWith(comment1_2.getCreateDate().toString().substring(0, 19))))
+                .andExpect(jsonPath("$.modifyDate").value(startsWith(comment1_2.getModifyDate().toString().substring(0, 19))))
+                .andExpect(jsonPath("$.postId").value(post1.getId()))
+                .andExpect(jsonPath("$.content").value("댓글 1-2"))
+                .andExpect(jsonPath("$.resultCode").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("댓글 단건 조회, 다른 글의 댓글 ID면 404")
+    void itemOfOtherPost() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(get("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), comment2_1.getId())))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("item"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+    }
+
+    @Test
+    @DisplayName("댓글 단건 조회, 없는 댓글 ID면 404")
+    void itemNotFound() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(get("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), Integer.MAX_VALUE)))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("item"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+    }
 }

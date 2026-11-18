@@ -21,6 +21,11 @@ public class PostService {
         return postRepository.save(new Post(title, content));
     }
 
+    /** 게시글에 속한 댓글만 찾는다. 다른 글의 댓글 ID면 NoSuchElementException(404). */
+    public PostComment findCommentById(Post post, long id) {
+        return post.findCommentById(id).orElseThrow();
+    }
+
     public PostComment writeComment(Post post, String content) {
         return post.addComment(content);
     }
