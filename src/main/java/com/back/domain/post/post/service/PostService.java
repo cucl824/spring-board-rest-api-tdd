@@ -6,6 +6,8 @@ import com.back.domain.post.postComment.entity.PostComment;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class PostService {
@@ -21,6 +23,10 @@ public class PostService {
 
     public PostComment writeComment(Post post, String content) {
         return post.addComment(content);
+    }
+
+    public List<Post> findAll() {
+        return postRepository.findAllByOrderByIdDesc();
     }
 
     public void flush() {

@@ -90,4 +90,35 @@ class ApiV1PostControllerTest {
 
         assertThat(postRepository.count()).isZero();
     }
+
+
+    @Test
+    @DisplayName("글 다건 조회, 개수와 주요 필드 확인(최신순)")
+    void list() throws Exception {
+        Post post1 = postService.write("제목 1", "내용 1");
+        Post post2 = postService.write("제목 2", "내용 2");
+        Post post3 = postService.write("제목 3", "내용 3");
+        postService.flush();
+
+        ResultActions resultActions = mvc
+                .perform(get("/api/v1/posts"))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostController.class))
+                .andExpect(handler().methodName("list"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3));
+
+        Post[] expected = {post3, post2, post1};
+        for (int i = 0; i < expected.length; i++) {
+            Post post = expected[i];
+            resultActions
+                    .andExpect(jsonPath("$[%d].id".formatted(i)).value(post.getId()))
+                    .andExpect(jsonPath("$[%d].createDate".formatted(i)).value(startsWith(post.getCreateDate().toString().substring(0, 19))))
+                    .andExpect(jsonPath("$[%d].modifyDate".formatted(i)).value(startsWith(post.getModifyDate().toString().substring(0, 19))))
+                    .andExpect(jsonPath("$[%d].title".formatted(i)).value(post.getTitle()))
+                    .andExpect(jsonPath("$[%d].content".formatted(i)).value(post.getContent()));
+        }
+    }
 }
