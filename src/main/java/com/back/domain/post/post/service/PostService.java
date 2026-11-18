@@ -37,6 +37,10 @@ public class PostService {
         post.modify(title, content);
     }
 
+    public void delete(Post post) {
+        postRepository.delete(post);
+    }
+
     public void flush() {
         postRepository.flush();
     }

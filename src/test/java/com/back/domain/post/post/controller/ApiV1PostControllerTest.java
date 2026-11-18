@@ -3,6 +3,8 @@ package com.back.domain.post.post.controller;
 import com.back.domain.post.post.entity.Post;
 import com.back.domain.post.post.repository.PostRepository;
 import com.back.domain.post.post.service.PostService;
+import com.back.domain.post.postComment.entity.PostComment;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,8 @@ class ApiV1PostControllerTest {
     private PostService postService;
     @Autowired
     private PostRepository postRepository;
+    @Autowired
+    private EntityManager em;
 
     @Test
     @DisplayName("글 작성")
@@ -238,6 +242,52 @@ class ApiV1PostControllerTest {
         resultActions
                 .andExpect(handler().handlerType(ApiV1PostController.class))
                 .andExpect(handler().methodName("modify"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+    }
+
+    @Test
+    @DisplayName("글 삭제, 소속 댓글은 함께 삭제되고 다른 글의 댓글은 남는다")
+    void deletePost() throws Exception {
+        Post post1 = postService.write("제목 1", "내용 1");
+        Post post2 = postService.write("제목 2", "내용 2");
+        PostComment comment1 = postService.writeComment(post1, "댓글 1-1");
+        PostComment comment2 = postService.writeComment(post1, "댓글 1-2");
+        PostComment otherComment = postService.writeComment(post2, "댓글 2-1");
+        postService.flush();
+        em.clear();
+
+        ResultActions resultActions = mvc
+                .perform(delete("/api/v1/posts/%d".formatted(post1.getId())))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostController.class))
+                .andExpect(handler().methodName("delete"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 글이 삭제되었습니다.".formatted(post1.getId())));
+
+        em.flush();
+        em.clear();
+
+        assertThat(postRepository.findById(post1.getId())).isEmpty();
+        assertThat(em.find(PostComment.class, comment1.getId())).isNull();
+        assertThat(em.find(PostComment.class, comment2.getId())).isNull();
+        assertThat(postRepository.findById(post2.getId())).isPresent();
+        assertThat(em.find(PostComment.class, otherComment.getId())).isNotNull();
+    }
+
+    @Test
+    @DisplayName("글 삭제, 없는 글이면 404")
+    void deletePostNotFound() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(delete("/api/v1/posts/%d".formatted(Integer.MAX_VALUE)))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostController.class))
+                .andExpect(handler().methodName("delete"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"));
     }
