@@ -318,4 +318,55 @@ class ApiV1PostCommentControllerTest {
         assertThat(comment.getContent()).isEqualTo("댓글 2-1");
         assertThat(comment.getPost().getId()).isEqualTo(post2.getId());
     }
+
+    @Test
+    @DisplayName("댓글 삭제")
+    void deleteComment() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(delete("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), comment1_1.getId())))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("delete"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 댓글이 삭제되었습니다.".formatted(comment1_1.getId())));
+
+        assertThat(findComment(comment1_1.getId())).isNull();
+        assertThat(postService.findById(post1.getId()).getComments()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("댓글 삭제, 다른 글의 댓글 ID면 404이고 그 댓글은 남는다")
+    void deleteCommentOfOtherPost() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(delete("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), comment2_1.getId())))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("delete"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+
+        PostComment comment = findComment(comment2_1.getId());
+        assertThat(comment).isNotNull();
+        assertThat(comment.getContent()).isEqualTo("댓글 2-1");
+        assertThat(postService.findById(post2.getId()).getComments()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("댓글 삭제, 없는 댓글 ID면 404")
+    void deleteCommentNotFound() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(delete("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), Integer.MAX_VALUE)))
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("delete"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+    }
 }

@@ -50,6 +50,10 @@ public class PostService {
         postComment.modify(content);
     }
 
+    public void deleteComment(Post post, PostComment postComment) {
+        post.deleteComment(postComment);
+    }
+
     public void flush() {
         postRepository.flush();
     }

@@ -76,4 +76,14 @@ public class ApiV1PostCommentController {
 
         return new RsData<>("200-1", "%d번 댓글이 수정되었습니다.".formatted(id));
     }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public RsData<Void> delete(@PathVariable long postId, @PathVariable long id) {
+        Post post = postService.findById(postId);
+        PostComment postComment = postService.findCommentById(post, id);
+        postService.deleteComment(post, postComment);
+
+        return new RsData<>("200-1", "%d번 댓글이 삭제되었습니다.".formatted(id));
+    }
 }
