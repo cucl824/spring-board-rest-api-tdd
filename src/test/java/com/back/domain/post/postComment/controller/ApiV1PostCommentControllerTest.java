@@ -242,4 +242,80 @@ class ApiV1PostCommentControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"));
     }
+
+    @Test
+    @DisplayName("댓글 수정")
+    void modify() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(
+                        put("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), comment1_1.getId()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "content": "수정된 댓글"
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("modify"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 댓글이 수정되었습니다.".formatted(comment1_1.getId())));
+
+        assertThat(findComment(comment1_1.getId()).getContent()).isEqualTo("수정된 댓글");
+    }
+
+    @Test
+    @DisplayName("댓글 수정, 빈 내용이면 400")
+    void modifyWithoutContent() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(
+                        put("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), comment1_1.getId()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "content": " "
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("modify"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-1"))
+                .andExpect(jsonPath("$.msg").value(containsString("content-NotBlank")));
+
+        assertThat(findComment(comment1_1.getId()).getContent()).isEqualTo("댓글 1-1");
+    }
+
+    @Test
+    @DisplayName("댓글 수정, 다른 글의 댓글 ID면 404이고 그 댓글은 바뀌지 않는다")
+    void modifyOfOtherPost() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(
+                        put("/api/v1/posts/%d/comments/%d".formatted(post1.getId(), comment2_1.getId()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "content": "수정된 댓글"
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ApiV1PostCommentController.class))
+                .andExpect(handler().methodName("modify"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"));
+
+        PostComment comment = findComment(comment2_1.getId());
+        assertThat(comment.getContent()).isEqualTo("댓글 2-1");
+        assertThat(comment.getPost().getId()).isEqualTo(post2.getId());
+    }
 }
